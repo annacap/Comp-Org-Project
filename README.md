@@ -1,7 +1,7 @@
 # Comp-Org-Project
 
-Convert to Binary - from lab 6 - Johnna
-Convert to Binary Char - from lab 6 
+Convert to Binary - from lab 6 - Johnna   DONE
+Convert to Binary Char - from lab 6   DONE
 
 Get Instructions - Kyle
 Instruction Memory - Reza
