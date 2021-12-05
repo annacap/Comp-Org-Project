@@ -390,7 +390,14 @@ void ALU_Control(BIT* ALUOp, BIT* funct, BIT* ALUControl)
   //        binary instruction
   // Output:4-bit ALUControl for input into the ALU
   // Note: Can use SOP or similar approaches to determine bits
-  
+  ALUControl[3] = 0;
+  // Created gates with and/sub/add/or/sll from diagrams. 
+  BIT sub = big_and((funct[5]), not_gate(funct[4]), not_gate(funct[3]), not_gate(funct[2]), (funct[1]),  not_gate(funct[0]));
+  BIT sll = big_and((funct[5]), not_gate(funct[4]), (funct[3]), not_gate(funct[2]), (funct[1]), not_gate(funct[0]));
+
+  ALUControl[0] = or_gate(sll, big_and((funct[5]), not_gate(funct[4]), not_gate(funct[3]), (funct[2]), not_gate(funct[1]), (funct[0])));
+  ALUControl[1] = or_gate(or_gate3(big_and((funct[5]), not_gate(funct[4]), not_gate(funct[3]), not_gate(funct[2]), not_gate(funct[1]), not_gate(funct[0])), sub, sll), not_gate(ALUOp[1]));
+  ALUControl[2] = or_gate3(sub, sll, ALUOp[0]); 
 }
 
 void ALU(BIT* ALUControl, BIT* Input1, BIT* Input2, BIT* Zero, BIT* Result)
