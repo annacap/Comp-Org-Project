@@ -95,6 +95,20 @@ BIT or_gate3(BIT A, BIT B, BIT C)
   return or_gate(A, or_gate(B, C));
 }
 
+BIT or_gate32(BIT* A){
+    BIT Temp = A[0];
+    for (int i = 1; i < 32; i++){
+        and_gate(Temp,A[i]);
+    }
+    if (A){
+        return TRUE;
+    }
+    else{
+        return FALSE;
+    }
+    
+}
+
 BIT and_gate(BIT A, BIT B)
 {
   if (A && B)
@@ -385,7 +399,17 @@ void ALU(BIT* ALUControl, BIT* Input1, BIT* Input2, BIT* Zero, BIT* Result)
   // Input: 4-bit ALUControl, two 32-bit inputs
   // Output: 32-bit result, and zero flag big
   // Note: Can re-use prior implementations (but need new circuitry for zero)
-  
+  BIT Less = FALSE;
+  BIT Set = FALSE;
+  ALU1(A[0], B[0], Binvert, CarryIn, Less, Op0, Op1, &Result[0], CarryOut, &Set);
+  for (int i = 1; i < 32; ++i) {
+    ALU1(A[i], B[i], Binvert, *CarryOut, Less, Op0, Op1, &Result[i], CarryOut, &Set);
+  }
+  Less = Set;
+  ALU1(A[0], B[0], Binvert, CarryIn, Less, Op0, Op1, &Result[0], CarryOut, &Set);
+  for (int i = 1; i < 32; ++i) {
+    Zero = not_gate(or_gate32(Result));
+  }
 }
 
 void Data_Memory(BIT MemWrite, BIT MemRead, 
