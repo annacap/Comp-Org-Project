@@ -4,8 +4,8 @@ Convert to Binary - from lab 6 - Johnna   DONE
 Convert to Binary Char - from lab 6   DONE
 
 Get Instructions - Kyle
-Instruction Memory - Reza
-Control - Reza
+Instruction Memory - Reza - done
+Control - Reza - done
 Read Register - Anna
 Write Register - Anna
 ALU Control - Johnna
