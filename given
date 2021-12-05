@@ -108,6 +108,11 @@ BIT and_gate3(BIT A, BIT B, BIT C)
   return and_gate(A, and_gate(B, C));
 }
 
+BIT big_and(BIT A, BIT B, BIT C, BIT D, BIT E, BIT F)
+{
+  return and_gate(and_gate3(A, B, C), and_gate3(D, E, F));
+}
+
 BIT xor_gate(BIT A, BIT B)
 {
   if (A ^ B)
@@ -304,22 +309,44 @@ void print_state()
 /* Functions that you will implement */
 /******************************************************************************/
 void Instruction_Memory(BIT* ReadAddress, BIT* Instruction)
-{
-  // TODO: Implement instruction memory
-  // Input: 32-bit instruction address
-  // Output: 32-bit binary instruction
-  // Note: Useful to use a 5-to-32 decoder here
-  
+{    
+    BIT out[32] = {FALSE};
+    decoder5(ReadAddress, out); //might not need &
+    for(int i=0; i<32; i++){
+        multiplexor2_32(out[i],Instruction,MEM_Instruction[i],Instruction);
+    }  
+}
+
+BIT Rtype(BIT andd, BIT orr, BIT add, BIT sub, BIT jr){
+    return or_gate(or_gate(or_gate(andd,orr), or_gate(add,sub)), jr);
+}
+BIT Jtype(BIT j, BIT jal){
+    return or_gate(j, jal);
 }
 
 void Control(BIT* OpCode,
   BIT* RegDst, BIT* Jump, BIT* Branch, BIT* MemRead, BIT* MemToReg,
   BIT* ALUOp, BIT* MemWrite, BIT* ALUSrc, BIT* RegWrite)
 {
-  // TODO: Set control bits for everything
-  // Input: opcode field from the instruction
-  // OUtput: all control lines get set 
-  // Note: Can use SOP or similar approaches to determine bits
+   *MemRead = big_and((OpCode[5]), not_gate(OpCode[4]), not_gate(OpCode[3]), not_gate(OpCode[2]), (OpCode[1]), (OpCode[0]));
+  *MemWrite = big_and((OpCode[5]), not_gate(OpCode[4]), (OpCode[3]), not_gate(OpCode[2]), (OpCode[1]), (OpCode[0]));
+  *Branch =  big_and(not_gate(OpCode[5]), not_gate(OpCode[4]), not_gate(OpCode[3]), (OpCode[2]), not_gate(OpCode[1]), not_gate(OpCode[0]));
+  BIT memr = *MemRead;
+  BIT memw = *MemWrite;
+  BIT bq = *Branch;
+  *ALUSrc = or_gate(memr, memw);
+  *RegWrite = not_gate(memr, bq); 
+  
+  BIT andd =  big_and(not_gate(OpCode[5]), not_gate(OpCode[4]), not_gate(OpCode[3]), not_gate(OpCode[2]), not_gate(OpCode[1]), not_gate(OpCode[0]));
+  BIT orr =   big_and(not_gate(OpCode[5]), not_gate(OpCode[4]), not_gate(OpCode[3]), not_gate(OpCode[2]), not_gate(OpCode[1]), not_gate(OpCode[0]));
+  BIT add =  big_and(not_gate(OpCode[5]), not_gate(OpCode[4]), not_gate(OpCode[3]), not_gate(OpCode[2]), not_gate(OpCode[1]), not_gate(OpCode[0]));
+  BIT sub =  big_and(not_gate(OpCode[5]), not_gate(OpCode[4]), not_gate(OpCode[3]), not_gate(OpCode[2]), not_gate(OpCode[1]), not_gate(OpCode[0]));
+  BIT jr =   big_and(not_gate(OpCode[5]), not_gate(OpCode[4]), not_gate(OpCode[3]), not_gate(OpCode[2]), not_gate(OpCode[1]), not_gate(OpCode[0]));
+  *MemToReg = or_gate(Rtype(andd, orr, add, sub, jr), memr);
+  *RegDst = Rtype(andd, orr, add, sub, jr);
+  *Jump = Jtype(big_and(not_gate(OpCode[5]), not_gate(OpCode[4]), not_gate(OpCode[3]), not_gate(OpCode[2]), (OpCode[1]), (OpCode[0])), big_and(not_gate(OpCode[5]), not_gate(OpCode[4]), not_gate(OpCode[3]), not_gate(OpCode[2]), (OpCode[1]), (OpCode[0])));
+  ALUOp[0] = bq;
+  ALUOp[1] = Rtype(andd, orr, add, sub, jr);
   
 }
 
