@@ -3,7 +3,7 @@
 Convert to Binary - from lab 6 - Johnna -  DONE
 Convert to Binary Char - from lab 6 -  DONE
 
-Get Instructions - Kyle
+Get Instructions - Kyle - DONE
 Instruction Memory - Reza - DONE
 Control - Reza - DONE
 Read Register - Anna
