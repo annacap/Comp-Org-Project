@@ -250,6 +250,122 @@ int binary_to_integer(BIT* A)
 
 // TODO: Implement any helper functions to assist with parsing
 
+void convert_to_bit_reg(char* reg, BIT* bit_return)
+{
+  int bit_conversion = 0;
+  if(strcmp(reg, "zero") == 0)
+  {
+    bit_conversion = 0;
+  }
+  else if(strcmp(reg, "v0") == 0)
+  {
+    bit_conversion = 2;
+  }
+  else if(strcmp(reg, "a0") == 0)
+  {
+    bit_conversion = 4;
+  }
+  else if(strcmp(reg, "t0") == 0)
+  {
+    bit_conversion = 8;
+  }
+  else if(strcmp(reg, "t1") == 0)
+  {
+    bit_conversion = 9;
+  }
+  else if(strcmp(reg, "s0") == 0)
+  {
+    bit_conversion = 16;
+  }
+  else if(strcmp(reg, "s1") == 0)
+  {
+    bit_conversion = 17;
+  }
+  else if(strcmp(reg, "sp") == 0)
+  {
+    bit_conversion = 29;
+  }
+  else if(strcmp(reg, "ra") == 0)
+  {
+    bit_conversion = 31;
+  }
+
+  convert_to_binary(bit_conversion, bit_return, 5);
+
+}
+
+void convert_to_bit_opI(char* op, BIT* return_op)
+{
+  int bit_conversion = 0;
+  if(strcmp(op, "lw") == 0)
+  {
+    bit_conversion = 35;
+  }
+  else if(strcmp(op, "sw") == 0)
+  {
+    bit_conversion = 43;
+  }
+  else if(strcmp(op, "beq") == 0)
+  {
+    bit_conversion = 4;
+  }
+  else if(strcmp(op, "addi") == 0)
+  {
+    bit_conversion = 8;
+  }
+
+  convert_to_binary(bit_conversion, return_op, 6);
+
+}
+
+void convert_to_bit_opR(char* op, BIT* return_funct)
+{
+  int bit_funct = 0;
+  if(strcmp(op, "and") == 0)
+  {
+    bit_funct = 36;
+  }
+  else if(strcmp(op, "or") == 0)
+  {
+    bit_funct = 37;
+  }
+  else if(strcmp(op, "add") == 0)
+  {
+    bit_funct = 32;
+  }
+  else if(strcmp(op, "sub") == 0)
+  {
+    bit_funct = 34;
+  }
+  else if(strcmp(op, "slt") == 0)
+  {
+    bit_funct = 42;
+  }
+  else if(strcmp(op, "jr") == 0)
+  {
+    bit_funct = 8;
+  }
+
+  convert_to_binary(bit_funct, return_funct, 6);
+
+}
+
+void convert_to_bit_opJ(char* op, BIT* return_op)
+{
+  int bit_conversion = 0;
+  if(strcmp(op, "j") == 0)
+  {
+    bit_conversion = 2;
+  }
+  else if(strcmp(op, "jal") == 0)
+  {
+    bit_conversion = 3;
+  }
+
+  convert_to_binary(bit_conversion, return_op, 6);
+
+}
+
 int get_instructions(BIT Instructions[][32])
 {
   char line[256] = {0};
@@ -267,6 +383,170 @@ int get_instructions(BIT Instructions[][32])
     // - Convert immediate field and jump address field to binary
     // - Use registers to get rt, rd, rs fields
     // Note: I parse everything as strings, then convert to BIT array at end
+    char op [32];
+    char reg1 [32];
+    BIT reg1_b [5];
+    sscanf(line, "%s %s", op, reg1);
+    
+
+    if(strcmp(op, "quit") == 0)
+    {
+      exit(1);
+    }
+
+    if(strcmp(op, "j") == 0 || strcmp(op, "jal") == 0 || strcmp(op, "jr") == 0)
+    {
+      sscanf(line, "%s %s", op, reg1);
+
+      // R type instruction
+      if(strcmp(op, "jr") == 0)
+      {
+        convert_to_bit_reg(reg1, reg1_b);
+        BIT shamt [5] = {FALSE};          // since there are no shift functions, shamt is ALWAYS 0
+        BIT opcode [6] = {FALSE};         // for all R type functions we have, opcode is ALWAYS 0
+        BIT funct [6] = {FALSE};
+        BIT null_reg [5] = {FALSE};
+        convert_to_bit_opR(op, funct);
+
+
+        int i;
+        for(i = 0; i < 32; i++)
+        {
+          if(i < 6)
+          {
+            Instructions[instruction_count][i] = opcode[i];
+          }
+          else if( i < 11)
+          {
+            Instructions[instruction_count][i] = reg1_b[i-6];
+          }
+          else if( i < 16)
+          {
+            Instructions[instruction_count][i] = null_reg[i-11];
+          }
+          else if(i < 21)
+          {
+            Instructions[instruction_count][i] = null_reg[i-16];
+          }
+          else if(i < 26)
+          {
+            Instructions[instruction_count][i] = shamt[i-21];
+          }
+          else
+          {
+            Instructions[instruction_count][i] = funct[i-26];
+          }
+        }
+
+      }
+      else
+      {
+        BIT address [26]= {FALSE};
+        BIT opcode [6] = {FALSE};
+        convert_to_binary(atoi(reg1), address, 26);
+        convert_to_bit_opJ(op, opcode);
+
+        int i;
+        for(i = 0; i < 32; i++)
+        {
+          if (i < 6)
+          {
+            Instructions[instruction_count][i] = opcode[i];
+          }
+          else
+          {
+            Instructions[instruction_count][i] = address[i-6];
+          }
+        }
+
+      }
+      
+    }
+    else
+    {
+      char reg2 [32];
+      char reg3_or_const [32];
+      sscanf(line, "%s %s %s %s", op, reg1, reg2, reg3_or_const);
+      BIT reg2_b [5];
+      BIT reg3_b [5];
+      convert_to_bit_reg(reg1, reg1_b);
+      convert_to_bit_reg(reg2, reg2_b);
+      
+
+      // finds out if reg3 is a const or not
+      if(reg3_or_const[0] != 'z' && reg3_or_const[0] != 'v' && reg3_or_const[0] != 'a' && reg3_or_const[0] != 't' && reg3_or_const[0] != 's' && reg3_or_const[0] != 'r')
+      {
+        int numb;
+        numb = atoi(reg3_or_const);
+        BIT opcode [6] = {FALSE};
+        BIT immediate [16] = {FALSE};
+        convert_to_binary(numb, immediate, 16);
+        convert_to_bit_opI(op, opcode);
+
+        int i;
+        for(i = 0; i < 32; i++)
+        {
+          if(i < 6)
+          {
+            Instructions[instruction_count][i] = opcode[i];
+          }
+          else if(i < 11)
+          {
+            Instructions[instruction_count][i] = reg2_b[i - 7];
+          }
+          else if(i < 16)
+          {
+            Instructions[instruction_count][i] =reg1_b[i - 11];
+          }
+          else
+          {
+            Instructions[instruction_count][i] = immediate[i - 16];
+          }
+        }
+
+      }
+      else
+      {
+        BIT shamt [5] = {FALSE};          // since there are no shift functions, shamt is ALWAYS 0
+        BIT opcode [6] = {FALSE};         // for all R type functions we have, opcode is ALWAYS 0
+        BIT funct [6] = {FALSE};
+        convert_to_bit_reg(reg3_or_const, reg3_b);
+        convert_to_bit_opR(op, funct);
+
+        int i;
+        for(i = 0; i < 32; i++)
+        {
+          if(i < 6)
+          {
+            Instructions[instruction_count][i] = opcode[i];
+          }
+          else if( i < 11)
+          {
+            Instructions[instruction_count][i] = reg2_b[i-6];
+          }
+          else if( i < 16)
+          {
+            Instructions[instruction_count][i] = reg3_b[i-11];
+          }
+          else if(i < 21)
+          {
+            Instructions[instruction_count][i] = reg1_b[i-16];
+          }
+          else if(i < 26)
+          {
+            Instructions[instruction_count][i] = shamt[i-21];
+          }
+          else
+          {
+            Instructions[instruction_count][i] = funct[i-26];
+          }
+        }
+
+      }
+
+    }
+
+    instruction_count++;
   
   }
   
