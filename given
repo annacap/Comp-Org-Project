@@ -714,7 +714,7 @@ void ALU(BIT* ALUControl, BIT* Input1, BIT* Input2, BIT* Zero, BIT* Result)
   }
   Less = Set;
   ALU1(A[0], B[0], Binvert, CarryIn, Less, Op0, Op1, &Result[0], CarryOut, &Set);
-  Zero = not_gate(or_gate32(Result));
+  *Zero = not_gate(or_gate32(Result));
 }
 
 void Data_Memory(BIT MemWrite, BIT MemRead, 
