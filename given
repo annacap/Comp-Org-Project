@@ -746,8 +746,8 @@ void Data_Memory(BIT MemWrite, BIT MemRead,
   // Note: Implementation similar as above
   for (int i = 0; i < 32; i++){
       BIT read = ReadData[i];
-      bool temp = multiplexor2(MemWrite, MEM_Data[binary_to_integer(Address)][i], WriteData[i]);
-      bool temp2 = multiplexor2(MemRead, read, MEM_Data[binary_to_integer(Address)][i]);
+      BIT temp = multiplexor2(MemWrite, MEM_Data[binary_to_integer(Address)][i], WriteData[i]);
+      BIT temp2 = multiplexor2(MemRead, read, MEM_Data[binary_to_integer(Address)][i]);
       MEM_Data[binary_to_integer(Address)][i] = temp;
       read = temp2;
       ReadData[i] = read;
