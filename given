@@ -242,6 +242,26 @@ int binary_to_integer(BIT* A)
   
   return (int)a;
 }
+void ALU1(BIT A, BIT B, BIT Binvert, BIT CarryIn, BIT Less, 
+  BIT Op0, BIT Op1, BIT* Result, BIT* CarryOut, BIT* Set)
+{
+  // TODO: implement a 1-bit ALU 
+  // Note: this will need modifications from Lab 5 to account for 'slt'
+  // See slide "MSB ALU" in csci2500-f21-ch03a-slides.pdf
+
+  BIT x0 = multiplexor2(Binvert, B, not_gate(B));
+  
+  BIT y0 = and_gate(A, x0);
+  BIT y1 = or_gate(A, x0);
+  
+  BIT y2 = FALSE;
+  adder1(A, x0, CarryIn, CarryOut, &y2); 
+  *Set = y2;
+  
+  BIT y3 = Less; 
+  
+  *Result = multiplexor4(Op0, Op1, y0, y1, y2, y3);
+}
 
 
 /******************************************************************************/
