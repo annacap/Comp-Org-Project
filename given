@@ -742,15 +742,22 @@ void ALU(BIT* ALUControl, BIT* Input1, BIT* Input2, BIT* Zero, BIT* Result)
   // Input: 4-bit ALUControl, two 32-bit inputs
   // Output: 32-bit result, and zero flag big
   // Note: Can re-use prior implementations (but need new circuitry for zero)
-  BIT Less = FALSE;
-  BIT Set = FALSE;
-  ALU1(Input1[0], Input2[0], Binvert, CarryIn, Less, Op0, Op1, &Result[0], CarryOut, &Set);
-  for (int i = 1; i < 32; ++i) {
-    ALU1(Input1[i], Input2[i], Binvert, *CarryOut, Less, Op0, Op1, &Result[i], CarryOut, &Set);
+  BIT f = FALSE;
+  BIT FLAG = FALSE;
+  BIT CarryOut[32] = {FALSE};
+  BIT CarryIn = multiplexor4(Op1, Op2, FALSE, FALSE, FALSE, multiplexor2(Op4, TRUE, FALSE));
+  BIT Cin_initial = CarryIn;
+  BIT aluc0 = ALUControl[0];
+  BIT aluc1 = ALUControl[1];
+  BIT aluc2 = ALUControl[2];
+  BIT aluc3 = ALUControl[3];
+  int i = 0;
+  while (i < 32){
+    ALU1(Input1[i], Input2[i], CarryIn, f, aluc0, aluc1, aluc2, aluc3, Result[i], CarryOut[i], &FLAG);
+    CarryIn = CarryOut[i];
+    i++;
   }
-  Less = Set;
-  ALU1(Input1[0], Input2[0], Binvert, CarryIn, Less, Op0, Op1, &Result[0], CarryOut, &Set);
-  *Zero = not_gate(or_gate32(Result));
+  ALU1(Input1[0], Input2[0], Cin_initial, Set, aluc0, aluc1, aluc2, aluc3, Result[0], CarryOut[0], &FLAG);
 }
 
 void Data_Memory(BIT MemWrite, BIT MemRead, 
