@@ -38,13 +38,16 @@ BIT THIRTY_TWO[32] = {FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, FAL
 BIT not_gate(BIT A);
 BIT or_gate(BIT A, BIT B);
 BIT or_gate3(BIT A, BIT B, BIT C);
+BIT or_gate32(BIT* A);
 BIT and_gate(BIT A, BIT B);
 BIT and_gate3(BIT A, BIT B, BIT C);
+BIT big_and(BIT A, BIT B, BIT C, BIT D, BIT E, BIT F);
 BIT xor_gate(BIT A, BIT B);
 BIT nor_gate(BIT A, BIT B);
 BIT nand_gate(BIT A, BIT B);
 
 void decoder2(BIT I0, BIT I1, BIT* O0, BIT* O1, BIT* O2, BIT* O3);
+void decoder5(BIT* I, BIT* O);
 BIT multiplexor2(BIT S, BIT I0, BIT I1);
 void multiplexor2_32(BIT S, BIT* I0, BIT* I1, BIT* Output);
 BIT multiplexor4(BIT S0, BIT S1, BIT I0, BIT I1, BIT I2, BIT I3);
@@ -154,6 +157,19 @@ void decoder2(BIT I0, BIT I1, BIT* O0, BIT* O1, BIT* O2, BIT* O3)
   *O3 = and_gate(I1, I0);
   
   return;
+}
+
+void decoder5(BIT* I, BIT* O)
+{
+  // TODO: implement 5-to-32 decoder using 2-to-4 and 3-to-8 decoders
+  // https://fci.stafpu.bu.edu.eg/Computer%20Science/4887/crs-12801/Files/hw4-solution.pdf
+  
+   BIT EN[4] = {FALSE};
+   decoder2(I[3], I[4], &EN[0], &EN[1], &EN[2], &EN[3]);
+   decoder3(I, EN[3], &O[24]);
+   decoder3(I, EN[2], &O[16]);
+   decoder3(I, EN[1], &O[8]);
+   decoder3(I, EN[0], &O[0]);
 }
 
 BIT multiplexor2(BIT S, BIT I0, BIT I1)
@@ -650,7 +666,7 @@ void Control(BIT* OpCode,
   BIT bq = *Branch;
   *ALUSrc = or_gate(memr, memw);
   *RegWrite = or_gate(memr,bq);
-  *RegWrite = not_gate(RegWrite);
+  *RegWrite = not_gate(*RegWrite);
   //*RegWrite = not_gate(memr, bq); 
   
   BIT andd =  big_and(not_gate(OpCode[5]), not_gate(OpCode[4]), not_gate(OpCode[3]), not_gate(OpCode[2]), not_gate(OpCode[1]), not_gate(OpCode[0]));
@@ -728,12 +744,12 @@ void ALU(BIT* ALUControl, BIT* Input1, BIT* Input2, BIT* Zero, BIT* Result)
   // Note: Can re-use prior implementations (but need new circuitry for zero)
   BIT Less = FALSE;
   BIT Set = FALSE;
-  ALU1(A[0], B[0], Binvert, CarryIn, Less, Op0, Op1, &Result[0], CarryOut, &Set);
+  ALU1(Input1[0], Input2[0], Binvert, CarryIn, Less, Op0, Op1, &Result[0], CarryOut, &Set);
   for (int i = 1; i < 32; ++i) {
-    ALU1(A[i], B[i], Binvert, *CarryOut, Less, Op0, Op1, &Result[i], CarryOut, &Set);
+    ALU1(Input1[i], Input2[i], Binvert, *CarryOut, Less, Op0, Op1, &Result[i], CarryOut, &Set);
   }
   Less = Set;
-  ALU1(A[0], B[0], Binvert, CarryIn, Less, Op0, Op1, &Result[0], CarryOut, &Set);
+  ALU1(Input1[0], Input2[0], Binvert, CarryIn, Less, Op0, Op1, &Result[0], CarryOut, &Set);
   *Zero = not_gate(or_gate32(Result));
 }
 
@@ -746,8 +762,8 @@ void Data_Memory(BIT MemWrite, BIT MemRead,
   // Note: Implementation similar as above
   for (int i = 0; i < 32; i++){
       BIT read = ReadData[i];
-      BIT temp = multiplexor2(MemWrite, MEM_Data[binary_to_integer(Address)][i], WriteData[i]);
-      BIT temp2 = multiplexor2(MemRead, read, MEM_Data[binary_to_integer(Address)][i]);
+      bool temp = multiplexor2(MemWrite, MEM_Data[binary_to_integer(Address)][i], WriteData[i]);
+      bool temp2 = multiplexor2(MemRead, read, MEM_Data[binary_to_integer(Address)][i]);
       MEM_Data[binary_to_integer(Address)][i] = temp;
       read = temp2;
       ReadData[i] = read;
