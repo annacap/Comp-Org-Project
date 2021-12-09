@@ -762,15 +762,12 @@ void Write_Register(BIT RegWrite, BIT* WriteRegister, BIT* WriteData)
   // Input: one 5-bit register address, data to write, and control bit
   // Output: None, but will modify register file
   // Note: Implementation will again be similar to those above
-  BIT WR[32] = {FALSE};
-  decoder5(WriteRegister,WR);
-  BIT Reg31[32] = {FALSE};
-  decoder5(REG_THIRTY_ONE, Reg31);
-  for (int i=0; i<32; i++){
-    while (and_gate(RegWrite,WR[i])){
-      Reg31[i] = WriteData[i];
-    }
-    
+  int i = 0;
+  while (i < 32){
+    int temp_wr = binary_to_integer(WriteRegister);
+    BIT mul2 = multiplexor2(RegWrite, MEM_Register[temp_wr][i], WriteData[i]);
+    MEM_Register[temp_wr][i] = mul2;
+    i++;
   }
   
 }
