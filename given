@@ -630,7 +630,7 @@ void Control(BIT* OpCode,
   BIT bq = *Branch;
   *ALUSrc = or_gate(memr, memw);
   *RegWrite = or_gate(memr,bq);
-  *RegWrite = not_gate(Reg_Write);
+  *RegWrite = not_gate(RegWrite);
   //*RegWrite = not_gate(memr, bq); 
   
   BIT andd =  big_and(not_gate(OpCode[5]), not_gate(OpCode[4]), not_gate(OpCode[3]), not_gate(OpCode[2]), not_gate(OpCode[1]), not_gate(OpCode[0]));
