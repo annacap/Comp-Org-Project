@@ -722,14 +722,26 @@ void Data_Memory(BIT MemWrite, BIT MemRead,
   // Input: 32-bit address, control flags for read/write, and data to write
   // Output: data read if processing a lw instruction
   // Note: Implementation similar as above
-  
+  for (int i = 0; i < 32; i++){
+      BIT read = ReadData[i];
+      bool temp = multiplexor2(MemWrite, MEM_Data[binary_to_integer(Address)][i], WriteData[i]);
+      bool temp2 = multiplexor2(MemRead, read, MEM_Data[binary_to_integer(Address)][i]);
+      MEM_Data[binary_to_integer(Address)][i] = temp;
+      read = temp2;
+      ReadData[i] = read;
+  }
 }
 
 void Extend_Sign16(BIT* Input, BIT* Output)
 {
   // TODO: Implement 16-bit to 32-bit sign extender
   // Copy Input to Output, then extend 16th Input bit to 17-32 bits in Output
-  
+  for (int i = 17; i < 32; i++){
+    Output[i] = multiplexor2(Input[16], FALSE, TRUE);
+  }
+  for (int i = 0; i <= 16 ; i++){
+    Output[i] = Input[i];
+  }
 }
 
 void updateState()
