@@ -297,7 +297,7 @@ int binary_to_integer(BIT* A)
   
   return (int)a;
 }
-void ALU1(BIT A, BIT B, BIT CarryIn, BIT Less, BIT Op1, BIT Op2, BIT Op3,  BIT* Result, BIT* CarryOut, BIT* Set)
+/*void ALU1(BIT A, BIT B, BIT CarryIn, BIT Less, BIT Op1, BIT Op2, BIT Op3,  BIT* Result, BIT* CarryOut, BIT* Set)
 {
   BIT a = and_gate(A,B);
   BIT b = or_gate(A,B);
@@ -332,6 +332,31 @@ void ALU1(BIT A, BIT B, BIT CarryIn, BIT Less, BIT Op1, BIT Op2, BIT Op3,  BIT* 
   *Result = multiplexor4(Op0, Op1, y0, y1, y2, y3);
   */
 
+}*/
+void ALU1(BIT A, BIT B, BIT*ALUControl, BIT CarryIn, BIT* CarryOut, BIT* Result, BIT* Set)
+{
+  // TODO: implement a 1-bit ALU 
+  // Note: this will need modifications from Lab 5 to account for 'slt'
+  // See slide "MSB ALU" in csci2500-f21-ch03a-slides.pdf
+  *Result = FALSE;
+  B = multiplexor2(ALUControl[2], B, not_gate(B));
+  adder1(A,B,CarryIn, CarryOut, Set);
+  *Result = multiplexor2(ALUControl[1], *Result, *Set);
+  *Result = multiplexor2(not_gate(or_gate(ALUControl[0],ALUControl[1],)), *Result,and_gate(A,B));
+  *Result = multiplexor2(and_gate(not_gate(ALUControl[1]), ALUControl[0]), *Result, or_gate(A,B));
+  *Result = multiplexor2(and_gate(ALUControl[0], ALUControl[1]), *Result, FALSE);
+  /*BIT x0 = multiplexor2(Binvert, B, not_gate(B));
+  
+  BIT y0 = and_gate(A, x0);
+  BIT y1 = or_gate(A, x0);
+  
+  BIT y2 = FALSE;
+  adder1(A, x0, CarryIn, CarryOut, &y2); 
+  *Set = y2;
+  
+  BIT y3 = Less; 
+  
+  *Result = multiplexor4(Op0, Op1, y0, y1, y2, y3);*/
 }
 
 
@@ -750,9 +775,6 @@ void Read_Register(BIT* ReadRegister1, BIT* ReadRegister2,
   decoder5(ReadRegister2,RR2);
   copy_bits(RR1,ReadData1);
   copy_bits(RR2,ReadData2);
-
-
-  
 }
 
 void Write_Register(BIT RegWrite, BIT* WriteRegister, BIT* WriteData)
@@ -788,7 +810,7 @@ void ALU_Control(BIT* ALUOp, BIT* funct, BIT* ALUControl)
   ALUControl[2] = or_gate3(sub, sll, ALUOp[0]); 
 }
 
-void ALU(BIT* ALUControl, BIT* Input1, BIT* Input2, BIT* Zero, BIT* Result, BIT Op1, BIT Op2, BIT Op4)
+/*void ALU(BIT* ALUControl, BIT* Input1, BIT* Input2, BIT* Zero, BIT* Result, BIT Op1, BIT Op2, BIT Op4)
 {   
   // TODO: Implement 32-bit ALU
   // Input: 4-bit ALUControl, two 32-bit inputs
@@ -810,6 +832,43 @@ void ALU(BIT* ALUControl, BIT* Input1, BIT* Input2, BIT* Zero, BIT* Result, BIT 
     i++;
   }
   ALU1(Input1[0], Input2[0], f, Cin_initial, aluc0, aluc1, aluc2, &Result[0], &CarryOut[0], &FLAG);
+}*/
+void ALU(BIT* ALUControl, BIT* Input1, BIT* Input2, BIT* Zero, BIT* Result)// BIT Op1, BIT Op2, BIT Op4)
+{   
+  // TODO: Implement 32-bit ALU
+  // Input: 4-bit ALUControl, two 32-bit inputs
+  // Output: 32-bit result, and zero flag big
+  // Note: Can re-use prior implementations (but need new circuitry for zero)
+  /*BIT f = FALSE;
+  BIT FLAG = FALSE;
+  BIT CarryOut[32] = {FALSE};
+  BIT CarryIn = multiplexor4(Op1, Op2, FALSE, FALSE, FALSE, multiplexor2(Op4, TRUE, FALSE));
+  BIT Cin_initial = CarryIn;
+  BIT aluc0 = ALUControl[0];
+  BIT aluc1 = ALUControl[1];
+  BIT aluc2 = ALUControl[2];
+  BIT aluc3 = ALUControl[3];
+  int i = 0;
+  while (i < 32){
+    ALU1(Input1[i], Input2[i], CarryIn, f, aluc0, aluc1, aluc2, aluc3, Result[i], CarryOut[i], &FLAG);
+    CarryIn = CarryOut[i];
+    i++;
+  }
+  ALU1(Input1[0], Input2[0], Cin_initial, f, aluc0, aluc1, aluc2, aluc3, Result[0], CarryOut[0], &FLAG);*/
+  BIT carryout;
+  BIT Set;
+  *Zero = TRUE;
+  BIT carryin = and_gate(ALUControl[2], not_gate(ALUControl[0]));
+  BIT carryin = ALUControl[2];
+  ALU1_bit(Input1[0], Input2[0], ALUControl, carryin, &carryout, &Result[0], &Set);
+  for (int i = 1; i < 32; i++){
+    ALU1_bit(input1[i], Input2[0],ALUControl, carryin, &carryout, &Result[0], &Set);
+  }
+  for (int i = 0; i < 32; i++){
+    *Zero = multiplexor2(Result[i], *Zero, FALSE);
+  }
+  Result[0] = multiplexor2(and_gate(ALUControl[0], ALUControl[1], Result[0], and_gate(Set, not_gate(*Zero))));
+  Result[0] = multiplexor2(and_gate(ALUControl[0], ALUControl[1], Result[0], Set));
 }
 
 void Data_Memory(BIT MemWrite, BIT MemRead, 
