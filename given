@@ -738,27 +738,21 @@ void Control(BIT* OpCode,
   BIT* RegDst, BIT* Jump, BIT* Branch, BIT* MemRead, BIT* MemToReg,
   BIT* ALUOp, BIT* MemWrite, BIT* ALUSrc, BIT* RegWrite)
 {
-   *MemRead = big_and((OpCode[5]), not_gate(OpCode[4]), not_gate(OpCode[3]), not_gate(OpCode[2]), (OpCode[1]), (OpCode[0]));
+  *MemRead = big_and((OpCode[5]), not_gate(OpCode[4]), not_gate(OpCode[3]), not_gate(OpCode[2]), (OpCode[1]), (OpCode[0]));
   *MemWrite = big_and((OpCode[5]), not_gate(OpCode[4]), (OpCode[3]), not_gate(OpCode[2]), (OpCode[1]), (OpCode[0]));
   *Branch =  big_and(not_gate(OpCode[5]), not_gate(OpCode[4]), not_gate(OpCode[3]), (OpCode[2]), not_gate(OpCode[1]), not_gate(OpCode[0]));
+  BIT addi = big_and(not_gate(OpCode[5]), not_gate(OpCode[4]), (OpCode[3]), not_gate(OpCode[2]), not_gate(OpCode[1]), not_gate(OpCode[0]));
+  *RegDst = big_and(not_gate(OpCode[5]), not_gate(OpCode[4]), not_gate(OpCode[3]), not_gate(OpCode[2]), not_gate(OpCode[1]), not_gate(OpCode[0]));
   BIT memr = *MemRead;
   BIT memw = *MemWrite;
   BIT bq = *Branch;
-  *ALUSrc = or_gate(memr, memw);
-  *RegWrite = or_gate(memr,bq);
-  *RegWrite = not_gate(*RegWrite);
-  //*RegWrite = not_gate(memr, bq); 
-  
-  BIT andd =  big_and(not_gate(OpCode[5]), not_gate(OpCode[4]), not_gate(OpCode[3]), not_gate(OpCode[2]), not_gate(OpCode[1]), not_gate(OpCode[0]));
-  BIT orr =   big_and(not_gate(OpCode[5]), not_gate(OpCode[4]), not_gate(OpCode[3]), not_gate(OpCode[2]), not_gate(OpCode[1]), not_gate(OpCode[0]));
-  BIT add =  big_and(not_gate(OpCode[5]), not_gate(OpCode[4]), not_gate(OpCode[3]), not_gate(OpCode[2]), not_gate(OpCode[1]), not_gate(OpCode[0]));
-  BIT sub =  big_and(not_gate(OpCode[5]), not_gate(OpCode[4]), not_gate(OpCode[3]), not_gate(OpCode[2]), not_gate(OpCode[1]), not_gate(OpCode[0]));
-  BIT jr =   big_and(not_gate(OpCode[5]), not_gate(OpCode[4]), not_gate(OpCode[3]), not_gate(OpCode[2]), not_gate(OpCode[1]), not_gate(OpCode[0]));
+  *ALUSrc = or_gate(or_gate(memr, memw), or_gate(addi,bq));
+  *RegWrite = or_gate(or_gate(or_gate(memr,bq), or_gate(memw, RegDst)), addi);
+
   *MemToReg = or_gate(Rtype(andd, orr, add, sub, jr), memr);
-  *RegDst = Rtype(andd, orr, add, sub, jr);
-  *Jump = Jtype(big_and(not_gate(OpCode[5]), not_gate(OpCode[4]), not_gate(OpCode[3]), not_gate(OpCode[2]), (OpCode[1]), (OpCode[0])), big_and(not_gate(OpCode[5]), not_gate(OpCode[4]), not_gate(OpCode[3]), not_gate(OpCode[2]), (OpCode[1]), (OpCode[0])));
-  ALUOp[0] = bq;
-  ALUOp[1] = Rtype(andd, orr, add, sub, jr);
+  *Jump = Jtype(big_and(not_gate(OpCode[5]), not_gate(OpCode[4]), not_gate(OpCode[3]), not_gate(OpCode[2]), (OpCode[1]), (OpCode[0])), big_and(not_gate(OpCode[5]), not_gate(OpCode[4]), not_gate(OpCode[3]), not_gate(OpCode[2]), (OpCode[1]), not_gate(OpCode[0])));
+  ALUOp[0] = or_gate(*RegDst, *Jump);
+  ALUOp[1] = or_gate(bq, *Jump);
   
 }
 
