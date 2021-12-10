@@ -65,7 +65,7 @@ int get_instructions(BIT Instructions[][32]);
 void Instruction_Memory(BIT* ReadAddress, BIT* Instruction);
 void Control(BIT* OpCode,
   BIT* RegDst, BIT* Jump, BIT* Branch, BIT* MemRead, BIT* MemToReg,
-  BIT* ALUOp, BIT* MemWrite, BIT* ALUSrc, BIT* RegWrite);
+  BIT* ALUOp, BIT* MemWrite, BIT* ALUSrc, BIT* RegWrite, BIT* Jal);
 void Read_Register(BIT* ReadRegister1, BIT* ReadRegister2,
   BIT* ReadData1, BIT* ReadData2);
 void Write_Register(BIT RegWrite, BIT* WriteRegister, BIT* WriteData);
@@ -699,6 +699,7 @@ BIT MemWrite  = FALSE;
 BIT ALUSrc    = FALSE;
 BIT RegWrite  = FALSE;
 BIT Zero      = FALSE;
+BIT FakeZero  = FALSE;
 BIT ALUControl[4] = {FALSE};
 
 void print_instruction()
@@ -757,7 +758,7 @@ void Control(BIT* OpCode,
   *RegWrite = or_gate(or_gate(memr, *RegDst), addi);
   *MemToReg = memr;
 
-  *Jump = big_and(not_gate(OpCode[5]), not_gate(OpCode[4]), not_gate(OpCode[3]), not_gate(OpCode[2]), (OpCode[1]), not_gate(OpCode[0]));
+  *Jump = or_gate(big_and(not_gate(OpCode[5]), not_gate(OpCode[4]), not_gate(OpCode[3]), not_gate(OpCode[2]), (OpCode[1]), not_gate(OpCode[0])), big_and(not_gate(OpCode[5]), not_gate(OpCode[4]), not_gate(OpCode[3]), not_gate(OpCode[2]), (OpCode[1]), (OpCode[0])));
   ALUOp[0] = or_gate(bq, *Jump);
   ALUOp[1] = or_gate(*RegDst, *Jump);
   
@@ -840,7 +841,6 @@ void ALU(BIT* ALUControl, BIT* Input1, BIT* Input2, BIT* Zero, BIT* Result)
   BIT Set = FALSE;
   BIT carryout = FALSE;
   BIT binvert = ALUControl[2]; //for subtract
-  printf("BINVERT: %d\n", binvert);
   BIT CarryINN = ALUControl[3];
   for(i = 0; i < 32; i++)
   {
@@ -867,6 +867,7 @@ void Data_Memory(BIT MemWrite, BIT MemRead,
   // Input: 32-bit address, control flags for read/write, and data to write
   // Output: data read if processing a lw instruction
   // Note: Implementation similar as above
+  
   BIT ready [32] = {FALSE};
   decoder5(Address, ready);
   for (int i = 0; i < 32; i++){
@@ -914,9 +915,9 @@ void updateState()
       i++;
   }
 
-  BIT jump_to_reg = {FALSE};
+  BIT jump_and_link = {FALSE};
 
-  Control(opcode, &RegDst, &Jump, &Branch, &MemRead, &MemToReg, ALUOp, &MemWrite, &ALUSrc, &RegWrite, jump_and_link); //control of the datapath
+  Control(opcode, &RegDst, &Jump, &Branch, &MemRead, &MemToReg, ALUOp, &MemWrite, &ALUSrc, &RegWrite, &jump_and_link); //control of the datapath
 
   //Set read register 1
   BIT rs[5] = {FALSE};
@@ -1015,8 +1016,26 @@ void updateState()
 
   ALU(pc_adder, PC, ONE, ZERO, pc_copy);
 
-  
-  
+
+  for(i = 0; i < 4; i++)
+  {
+    address_bit[i+28] = pc_copy[i+28];
+  }
+
+  BIT extended_pc_copy [32] = {FALSE};
+  ALU(pc_adder, pc_copy, extend_sign32, &FakeZero, extended_pc_copy);
+
+  Write_Register(jump_and_link, REG_THIRTY_ONE, pc_copy);
+
+  BIT beq_instruct = and_gate(Branch, Zero);
+
+  BIT final_pc_result [32] = {FALSE};
+
+  multiplexor2_32(beq_instruct, pc_copy, extended_pc_copy, final_pc_result);    // if beq is true, then final_pc_result (let's call this the beq bit for the next line)
+                                                                                // is the branch's address, if not, then the PC will update by 1
+  multiplexor2_32(Jump, final_pc_result, address_bit, PC);                      // if jump is true then PC is going to equal the adress bit, if not then the beq bit
+  multiplexor2_32(jump_to_reg, PC, RD1, PC);                                    // if jump to re is true then PC is going to equal ReadData 1 (our reister for jump)
+
   
 }
 
