@@ -297,8 +297,7 @@ int binary_to_integer(BIT* A)
   
   return (int)a;
 }
-void ALU1(BIT A, BIT B, BIT CarryIn, BIT Less, 
-  BIT Op0, BIT Op1, BIT Op2, BIT Op4,  BIT* Result, BIT* CarryOut, BIT* Set)
+void ALU1(BIT A, BIT B, BIT CarryIn, BIT Less, BIT Op1, BIT Op2, BIT Op3,  BIT* Result, BIT* CarryOut, BIT* Set)
 {
   BIT a = and_gate(A,B);
   BIT b = or_gate(A,B);
@@ -310,8 +309,8 @@ void ALU1(BIT A, BIT B, BIT CarryIn, BIT Less,
   *Set = c;
   BIT e = Less;
   BIT f = not_gate(b);
-  BIT m1 = multiplexor2(Op4,a,b);
-  BIT m2 = multiplexor2(Op4,d,e);
+  BIT m1 = multiplexor2(Op3,a,b);
+  BIT m2 = multiplexor2(Op3,d,e);
   *Result = multiplexor4(Op1,Op2,m1,f,c,m2);
 
 
@@ -806,11 +805,11 @@ void ALU(BIT* ALUControl, BIT* Input1, BIT* Input2, BIT* Zero, BIT* Result, BIT 
   BIT aluc3 = ALUControl[3];
   int i = 0;
   while (i < 32){
-    ALU1(Input1[i], Input2[i], f, CarryIn, aluc0, aluc1, aluc2, aluc3, &Result[i], &CarryOut[i], &FLAG);
+    ALU1(Input1[i], Input2[i], f, CarryIn, aluc0, aluc1, aluc2, &Result[i], &CarryOut[i], &FLAG);
     CarryIn = CarryOut[i];
     i++;
   }
-  ALU1(Input1[0], Input2[0], f, Cin_initial, aluc0, aluc1, aluc2, aluc3, &Result[0], &CarryOut[0], &FLAG);
+  ALU1(Input1[0], Input2[0], f, Cin_initial, aluc0, aluc1, aluc2, &Result[0], &CarryOut[0], &FLAG);
 }
 
 void Data_Memory(BIT MemWrite, BIT MemRead, 
@@ -850,11 +849,95 @@ void updateState()
   // easier to consider the pipelined version of the process, and handle things
   // in order of the pipeline. The stages and operations are:
   // Fetch - load instruction from instruction memory
+  BIT current_instruct[32] ={FALSE};
+  int i;
+  int j = binary_to_integer(PC);
+  for (i = 0; i <32; i++){
+      current_instruct[i] = MEM_Instruction[j][i];
+  }
   // Decode - set control bits and read from the register file
+  //Making OPCODE
+  BIT opcode[6] = {FALSE}; //set them to 0
+  i = 0;
+  int pos = 26;
+  while (i < 6){
+      opcode[i] = current_instruct[pos];
+      pos++;
+      i++;
+  }
+  Control(opcode, &RegDst, &Jump, &Branch, &MemRead, &MemToReg, ALUOp, &MemWrite, &ALUSrc, &RegWrite); //control of the datapath
+
+  //Set read register 1
+  BIT RR1[5] = {FALSE};
+  i = 0; 
+  pos = 21;
+  while (i < 5){
+      RR1[i] = current_instruct[pos];
+      i++;
+      pos++;
+  }
+ 
+  BIT RR2[5] = {FALSE};
+  i = 0; 
+  pos = 16;
+  while (i < 5){
+      RR2[i] = current_instruct[pos];
+      i++;
+      pos++;
+  }
+ 
+  BIT RD[5] = {FALSE};
+  i = 0;
+  pos = 11;
+  while (i < 5){
+      RD[i] = RD[pos];
+      i++;
+      pos++;
+  }
+
+  BIT WR[5] = {FALSE};
+  i = 0;
+  while ( i < 5){
+      WR[i] = multiplexor2(RegDst, RR2[i], RD[i]);
+      i++;
+  }
+
+  BIT funct[6] = {FALSE};
+  i = 0;
+  while(i < 6){
+      funct[i] = current_instruct[i];
+      i++;
+  }
+
+  BIT extend_sign16[16] = {FALSE};
+  i = 0;
+  while (i < 16){
+      extend_sign16[i] = current_instruct[i];
+      i++;
+  }
+
+  BIT extend_sign32[32] = {FALSE};
+  Extend_Sign16(extend_sign16, extend_sign32);
+  //Read data 1 and read data 2
+  BIT RD1[32] = {FALSE};
+  BIT RD2[32] = {FALSE};
+  Read_Register(RR1,RR2,RD1,RD2);
+
   // Execute - process ALU
+  BIT New_RD[32] = {FALSE};
+  multiplexor2_32(ALUSrc, RD2, extend_sign32, New_RD);
+  ALU_Control(ALUOp,funct, ALUControl);
+  BIT WA[32] = {FALSE}; //write address
+  ALU(ALUControl,RD1,New_RD,WA,0,0,0,0);
   // Memory - read/write data memory
+  BIT Data_RD[32] = {FALSE};
+  Data_Memory(MemWrite, MemRead, WA, RD, Data_RD);
   // Write Back - write to the register file
+  BIT New_WD[32] = {FALSE};
+  multiplexor2_32(MemToReg, New_RD, Data_RD, New_RD);
   // Update PC - determine the final PC value for the next instruction
+
+
   
 }
 
